@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph Server[FastMCP server process]
+        T[Transport: Streamable HTTP]
+        AU[Auth: AzureProvider<br/>OAuth proxy + JWT validation]
+        OBO[OBO token service<br/>EntraOBOToken + cache]
+        RT[Read tools]
+        WT[Write tools<br/>propose / apply]
+        PR[Prompts<br/>analysis templates]
+        RS[Resources<br/>templates, field schema]
+        AP[Approval service<br/>elicitation, state machine]
+        ADO[Azure DevOps client<br/>httpx, retries, shaping]
+        AUD[Audit logger]
+    end
+    T --> AU --> RT & WT & PR & RS
+    RT --> OBO --> ADO
+    WT --> AP --> ADO
+    WT --> OBO
+    AP --> AUD

@@ -1,0 +1,7 @@
+flowchart LR
+    C[MCP client] -->|HTTPS| ACA[Azure Container Apps<br/>FastMCP container]
+    ACA --> KV[Key Vault<br/>certificate / signing keys]
+    ACA --> R[(Azure Cache for Redis)]
+    ACA --> AI[Application Insights<br/>OpenTelemetry]
+    ACA --> E[Entra ID]
+    ACA --> ADO[Azure DevOps]

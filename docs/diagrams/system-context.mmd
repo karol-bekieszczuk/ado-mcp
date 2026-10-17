@@ -1,0 +1,8 @@
+flowchart LR
+    U[Engineer] -->|chat| C[MCP client<br/>Claude Code CLI / VS Code]
+    C -->|MCP over HTTPS<br/>Bearer token| S[FastMCP server]
+    C -.->|OAuth login via proxy| E[Microsoft Entra ID]
+    S -->|token validation, OBO exchange| E
+    S -->|REST 7.1, user's OBO token| A[Azure DevOps Services<br/>Boards, Repos, Wiki, Search]
+    S --> P[(Proposal store<br/>+ token storage)]
+    S --> L[(Audit log / telemetry)]

@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> Pending: propose_*
+    Pending --> Approved: user accepts (elicitation)
+    Pending --> Rejected: user declines / cancels
+    Pending --> Expired: TTL elapsed
+    Approved --> Applied: write succeeded
+    Approved --> Failed: write failed (e.g. revision conflict)
+    Rejected --> [*]
+    Expired --> [*]
+    Applied --> [*]
+    Failed --> [*]

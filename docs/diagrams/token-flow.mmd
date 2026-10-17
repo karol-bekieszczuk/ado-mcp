@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant C as MCP client
+    participant S as FastMCP server (OAuth proxy)
+    participant E as Entra ID
+    participant A as Azure DevOps
+
+    C->>S: GET /mcp (no token)
+    S-->>C: 401 + WWW-Authenticate (resource metadata URL)
+    C->>S: Discover metadata, register client (proxy handles DCR)
+    C->>S: /authorize (PKCE)
+    S->>E: Redirect user to Entra login (scopes: api://<app>/mcp.access + ADO scope)
+    E-->>S: Auth code at /auth/callback
+    S->>E: Exchange code for tokens (user token, aud = our API)
+    S-->>C: Proxy-issued token for the MCP session
+    C->>S: tools/call get_work_item (Bearer token)
+    S->>S: Validate token, load user's upstream Entra token
+    S->>E: OBO: assertion = user token, scope = ADO
+    E-->>S: Azure DevOps access token (user context)
+    S->>A: GET _apis/wit/workitems/1234 (Bearer ADO token)
+    A-->>S: Work item JSON
+    S-->>C: Curated result

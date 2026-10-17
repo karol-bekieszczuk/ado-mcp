@@ -1,0 +1,10 @@
+flowchart LR
+    A[Work item] --> B[Discussion + history]
+    A --> C[Related items, depth 1-2]
+    A --> D[Linked PRs / commits]
+    D --> E[Changed files]
+    A --> F[Code search on key terms]
+    A --> G[Wiki search]
+    B & C & E & F & G --> H[LLM in client applies template]
+    H --> I[Analysis / impact / plan / doc]
+    I -->|optional| J[propose_comment]
