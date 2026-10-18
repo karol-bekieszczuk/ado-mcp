@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.5 |
+| Status | Draft v0.6 |
 | Owner | Karol |
 | Last updated | 2026-10-17 |
 | Related | [PRD.md](PRD.md) |
@@ -14,7 +14,7 @@ This document explains **what** the components are, **how** they interact and **
 ## 1. Context and constraints
 
 - **Platform:** Azure DevOps Services (cloud), organization backed by an Entra ID tenant.
-- **Framework:** FastMCP 3.x (Python). OBO support (`EntraOBOToken`) requires FastMCP >= 3.0 with the `azure` extra.
+- **Framework:** FastMCP 4.x (Python), currently 4.1. OBO support (`EntraOBOToken`, built on `azure-identity`'s `OnBehalfOfCredential`) requires the `azure` extra.
 - **Protocol:** MCP over Streamable HTTP (remote server). stdio is used only for early local experiments.
 - **Identity:** Every Azure DevOps call is made as the signed-in user (Entra ID, OAuth 2.0 On-Behalf-Of).
 - **Safety:** All writes go through a human approval gate the model cannot bypass.
@@ -66,7 +66,7 @@ Key points to understand:
 
 1. **Two different audiences.** The token the server validates has audience `api://<server-app-id>`. The token sent to Azure DevOps has audience `499b84ac-1321-427f-aa17-267ca6975798` (the Azure DevOps resource). OBO is what converts one into the other.
 2. **The OAuth proxy issues its own token to the client** and keeps the upstream Entra tokens in its storage. That is why production needs persistent, encrypted `client_storage` and a stable `jwt_signing_key`; otherwise every restart logs everyone out.
-3. **OBO is per user and cacheable.** Cache by user object ID + scope until shortly before expiry (`EntraOBOToken` and MSAL handle this; verify behavior in your FastMCP version).
+3. **OBO is per user and cacheable.** Cache by user object ID + scope until shortly before expiry (`AzureProvider` caches `OnBehalfOfCredential` instances per user assertion; verify behavior in the pinned FastMCP version).
 4. **MFA and Conditional Access.** v1 uses Entra Security Defaults: MFA is completed once at interactive sign-in, recorded in the user token (`amr` claim) and inherited by the OBO token, so OBO works without extra prompts. Conditional Access (Entra ID P1) is out of scope for v1, but the error handling below is still implemented.
 5. **Conditional Access.** If a policy requires MFA or a compliant device for Azure DevOps, OBO can return `interaction_required` with a claims challenge. The server cannot satisfy it; it must return a clear error so the user re-authenticates.
 
@@ -307,7 +307,7 @@ Testing approach: FastMCP's in-memory `Client` lets you call tools in tests with
 
 | ADR | Decision | Alternatives | Rationale |
 |---|---|---|---|
-| ADR-001 | Python + FastMCP 3.x | Official MCP Python SDK, TypeScript SDK | FastMCP has first-class Entra support (AzureProvider, OBO dependency), less boilerplate. |
+| ADR-001 | Python + FastMCP 4.x | Official MCP Python SDK, TypeScript SDK | FastMCP has first-class Entra support (AzureProvider, OBO dependency), less boilerplate. |
 | ADR-002 | Remote server over Streamable HTTP | stdio local server | OAuth and per-user identity require HTTP; one deployment serves the team. |
 | ADR-003 | Entra ID + OBO for Azure DevOps | PAT, service principal, token passthrough | Least privilege, user-level audit, no long-lived secrets per user (see 4.1). |
 | ADR-004 | No LLM inside the server in v1 | Server-side LLM calls, MCP sampling | Keeps server deterministic, cheap and testable; the client already has a capable model. Sampling is a later option once client support is broad. |
@@ -344,7 +344,7 @@ Product decisions (clients, organization and project, hosting, writable fields, 
 
 ## 16. References
 
-- FastMCP Azure (Entra ID) integration and OBO: https://gofastmcp.com/v3/integrations/azure
+- FastMCP Azure (Entra ID) integration and OBO: https://gofastmcp.com/integrations/azure
 - Azure DevOps remote MCP server GA (context for build vs. reuse): https://infoq.com/news/2026/08/azure-devops-remote-mcp-ga
 - Microsoft identity platform, On-Behalf-Of flow: https://learn.microsoft.com/entra/identity-platform/v2-oauth2-on-behalf-of-flow
 - Azure DevOps REST API reference: https://learn.microsoft.com/rest/api/azure/devops/
