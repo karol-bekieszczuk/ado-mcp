@@ -1,15 +1,20 @@
 from importlib.metadata import version
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastmcp import FastMCP
-from pydantic import Field
+from fastmcp.prompts import Message
+from pydantic import Field, StringConstraints
 
 mcp = FastMCP("ado-mcp")
 
 
 @mcp.tool
 def greet(
-    name: Annotated[str, "The name of the person to greet"],
+    name: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1),
+        Field(description="The name of the person to greet"),
+    ],
     times: Annotated[
         int, Field(ge=1, le=5, description="The number of times to greet")
     ],
@@ -38,6 +43,31 @@ async def server_metadata() -> dict:
 def greeting(name: str) -> str:
     """Greeting resource. Returns a greeting message for the given name."""
     return f"# Hello {name}\n..."
+
+
+@mcp.prompt
+def greeting_prompt(
+    names: Annotated[
+        str,
+        Field(
+            min_length=1, description="names to pass to the prompt separated by commas"
+        ),
+    ],
+    style: Annotated[
+        Literal["formal", "friendly"], Field(description="output style")
+    ] = "formal",
+    times: Annotated[
+        int, Field(ge=1, le=5, description="The number of times to greet")
+    ] = 1,
+) -> list[Message]:
+    """Greeting prompt. Returns a list of messages with instructions to greet the given names in the specified style.
+    Allowed styles: formal, friendly. Use when asked to greet someone."""
+    return [
+        Message(
+            f"using the tool greet please greet the users {names} in {style} style {times} times",
+            role="user",
+        )
+    ]
 
 
 def main() -> None:

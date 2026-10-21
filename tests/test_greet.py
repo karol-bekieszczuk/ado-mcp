@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
@@ -16,9 +18,27 @@ async def test_greet_rejects_times_above_max(client):
         await client.call_tool("greet", {"name": "Karol", "times": 10})
 
 
+async def test_greet_rejects_non_numeric_times(client):
+    exptected = "Input should be a valid integer"
+    with pytest.raises(ToolError, match=re.escape(exptected)):
+        await client.call_tool("greet", {"name": "Karol", "times": "abc"})
+
+
 async def test_greet_happy_path(client):
     result = await client.call_tool("greet", {"name": "Karol", "times": 3})
     assert result.data == "Hello, Karol! You have been greeted 3 times."
+
+
+async def test_greet_empty_name(client):
+    expected = "String should have at least 1 character [type=string_too_short, input_value='', input_type=str"
+    with pytest.raises(ToolError, match=re.escape(expected)):
+        await client.call_tool("greet", {"name": "", "times": 3})
+
+
+async def test_greet_whitespace_name(client):
+    expected = "String should have at least 1 character"
+    with pytest.raises(ToolError, match=re.escape(expected)):
+        await client.call_tool("greet", {"name": "    ", "times": 3})
 
 
 async def test_greet_tool_schema(client):
@@ -29,3 +49,6 @@ async def test_greet_tool_schema(client):
     assert times["minimum"] == 1
     assert set(greet.input_schema["required"]) == {"name", "times"}
     assert greet.description
+    name = greet.input_schema["properties"]["name"]
+    assert name["type"] == "string"
+    assert name["minLength"] == 1
