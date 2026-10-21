@@ -156,7 +156,17 @@ Rules of thumb:
 - If it has side effects, it is a tool. Resources and prompts must never change state.
 - If the model must choose *when* and *with which arguments* to fetch it, it is a tool, even if it is read-only. A work item is a tool, not a resource, because the model discovers which IDs matter while reasoning.
 - If the user should consciously start it, it is a prompt. A prompt can recommend a tool sequence, but the model still decides the calls.
-- Client support differs: every client supports tools; support for resources and prompts is uneven. Anything the workflow cannot do without must be reachable as a tool. Verify how Claude Code exposes resources (`@` mentions) and prompts (slash commands) in step 1.
+- Client support differs: every client supports tools; support for resources and prompts is uneven. Anything the workflow cannot do without must be reachable as a tool.
+
+How Claude Code exposes each primitive (verified in step 1 over stdio):
+
+| Primitive | Where it appears in Claude Code | Notes |
+|---|---|---|
+| Tool | Not in the prompt input. Listed under `/mcp` → server → *View tools*; invoked by the model as `mcp__<server>__<tool>`. | The user cannot pick a tool directly, only ask for it. The permission prompt before the call is the evidence that it went through MCP. |
+| Resource | `@` mentions, showing both static resources and resource templates. | The user attaches the content to the context; the model does not fetch it on its own. |
+| Prompt | `/` slash commands. | The user starts it on purpose; arguments are filled in by the user. |
+
+The asymmetry follows from who controls each primitive: the user-controlled ones (resources, prompts) get an input shortcut, while the model-controlled one (tools) does not.
 
 Tool design checklist (in addition to the rules at the top of this section):
 
