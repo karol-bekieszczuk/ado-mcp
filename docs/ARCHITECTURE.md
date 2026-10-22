@@ -159,15 +159,17 @@ Rules of thumb:
 - If the user should consciously start it, it is a prompt. A prompt can recommend a tool sequence, but the model still decides the calls.
 - Client support differs: every client supports tools; support for resources and prompts is uneven. Anything the workflow cannot do without must be reachable as a tool.
 
-How Claude Code exposes each primitive (verified in step 1 over stdio):
+How Claude Code exposes each primitive (verified in step 1 over stdio and http):
 
 | Primitive | Where it appears in Claude Code | Notes |
 |---|---|---|
 | Tool | Not in the prompt input. Listed under `/mcp` → server → *View tools*; invoked by the model as `mcp__<server>__<tool>`. | The user cannot pick a tool directly, only ask for it. The permission prompt before the call is the evidence that it went through MCP. |
-| Resource | `@` mentions, showing both static resources and resource templates. | The user attaches the content to the context; the model does not fetch it on its own. |
+| Resource | `@` mentions, showing both static resources and resource templates. | The user attaches the content to the context with `@`. The model can also read resources itself through Claude Code's built-in resource tools, including templates (it fills in the URI, e.g. `greeting://Karol`). This is a Claude Code feature, not an MCP guarantee; other clients may only let the user attach resources. |
 | Prompt | `/` slash commands. | The user starts it on purpose; arguments are filled in by the user. |
 
-The asymmetry follows from who controls each primitive: the user-controlled ones (resources, prompts) get an input shortcut, while the model-controlled one (tools) does not.
+The asymmetry follows from who controls each primitive: the user-controlled ones (resources, prompts) get an input shortcut, while the model-controlled one (tools) does not. The shortcut is about the user, not a limit on the model: in Claude Code the model can reach both tools and resources, but the rule above still holds because other clients may not expose resources to the model.
+
+The same exposure was observed over stdio and Streamable HTTP: how primitives appear depends on the client, not on the transport.
 
 Tool design checklist (in addition to the rules at the top of this section):
 
@@ -184,6 +186,15 @@ Tool design checklist (in addition to the rules at the top of this section):
 | stdio | The client starts the server as a subprocess and talks over stdin/stdout. One client, one user, one process. | Local experiments (step 1) and single-user local tools. | None in MCP; the process inherits the user's local credentials (e.g. a PAT in env). |
 | Streamable HTTP | One HTTP endpoint (`/mcp`): the client POSTs JSON-RPC messages; the server answers with JSON or an SSE stream (for progress, logging, elicitation). Optional session ID header. | Remote, multi-user servers (this project, ADR-002). | OAuth 2.1 bearer tokens (section 4). |
 | HTTP+SSE (legacy) | Two endpoints (`/sse` + POST). Deprecated in the MCP spec since 2025-03-26. | Do not use; know it only to recognize it in older examples. | |
+
+Who runs the server process: over stdio the client starts the server itself as a subprocess, so it is running whenever the client needs it. Over Streamable HTTP the server must already be running; the client only connects to the URL, and if nothing listens there it fails with a connection error (`ECONNREFUSED`, observed in step 1) instead of starting it.
+
+Streamable HTTP details observed with raw curl in step 1 (FastMCP 4.1):
+
+- The client must send `Accept: application/json, text/event-stream`. An empty `Accept` or only one of the two types returns `406 Not Acceptable`. Note that curl sends `Accept: */*` by default, which the server accepts, so testing "without Accept" needs an explicit `-H "Accept:"`.
+- Responses come as an SSE stream: each JSON-RPC message is a line prefixed with `data:` (after an `event: message` line), not a plain JSON body.
+- `initialize` returns the session ID in the `Mcp-Session-Id` response header; every later request must send it back. A missing session ID returns `400`, an unknown one returns `404`.
+- A JSON-RPC notification (no `id`, e.g. `notifications/initialized`) returns `202 Accepted` with an empty body. A notification expects no response, so there is no JSON-RPC message to send; HTTP still needs a status, and `202` only says "received". Over stdio the server writes nothing back at all.
 
 Why this matters here: elicitation (section 7) requires the server to send a request to the client in the middle of a tool call. Over Streamable HTTP this travels on the SSE stream of that POST, so proxies or load balancers that buffer responses break approvals. With more than one replica, a session must reach the same instance or the session state must be shared (section 9).
 
