@@ -1,3 +1,4 @@
+import os
 from importlib.metadata import version
 from typing import Annotated, Literal
 
@@ -71,7 +72,16 @@ def greeting_prompt(
 
 
 def main() -> None:
-    mcp.run()  # default transport = stdio
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
+    if transport not in ("stdio", "http"):
+        raise SystemExit(
+            f"Unknown MCP_TRANSPORT={transport!r}, expected 'stdio' or 'http'"
+        )
+
+    if transport == "stdio":
+        mcp.run()
+    else:
+        mcp.run(transport="http", host="127.0.0.1", port=8000)
 
 
 if __name__ == "__main__":
