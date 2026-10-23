@@ -8,6 +8,8 @@ from pydantic import Field, StringConstraints
 
 mcp = FastMCP("ado-mcp")
 
+HTTP_SECURITY = {"host_origin_protection": True}
+
 
 @mcp.tool
 def greet(
@@ -81,7 +83,7 @@ def main() -> None:
     if transport == "stdio":
         mcp.run()
     else:
-        mcp.run(transport="http", host="127.0.0.1", port=8000)
+        mcp.run(transport="http", host="127.0.0.1", port=8000, **HTTP_SECURITY)
 
 
 if __name__ == "__main__":
