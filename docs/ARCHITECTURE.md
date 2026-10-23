@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.6 |
+| Status | Draft v0.7 |
 | Owner | Karol |
-| Last updated | 2026-10-17 |
+| Last updated | 2026-10-23 |
 | Related | [PRD.md](PRD.md) |
 
 This document explains **what** the components are, **how** they interact and **why** each choice was made. Decisions are recorded as ADRs in section 12 so they can be revisited deliberately.
@@ -67,7 +67,7 @@ Key points to understand:
 1. **Two different audiences.** The token the server validates has audience `api://<server-app-id>`. The token sent to Azure DevOps has audience `499b84ac-1321-427f-aa17-267ca6975798` (the Azure DevOps resource). OBO is what converts one into the other.
 2. **The OAuth proxy issues its own token to the client** and keeps the upstream Entra tokens in its storage. That is why production needs persistent, encrypted `client_storage` and a stable `jwt_signing_key`; otherwise every restart logs everyone out.
 3. **OBO is per user and cacheable.** Cache by user object ID + scope until shortly before expiry (`AzureProvider` caches `OnBehalfOfCredential` instances per user assertion; verify behavior in the pinned FastMCP version).
-4. **MFA and Conditional Access.** v1 uses Entra Security Defaults: MFA is completed once at interactive sign-in, recorded in the user token (`amr` claim) and inherited by the OBO token, so OBO works without extra prompts. Conditional Access (Entra ID P1) is out of scope for v1, but the error handling below is still implemented.
+4. **MFA.** v1 uses Entra Security Defaults: MFA is completed once at interactive sign-in, recorded in the user token (`amr` claim) and inherited by the OBO token, so OBO works without extra prompts. Conditional Access (Entra ID P1) is out of scope for v1, but the error handling below is still implemented.
 5. **Conditional Access.** If a policy requires MFA or a compliant device for Azure DevOps, OBO can return `interaction_required` with a claims challenge. The server cannot satisfy it; it must return a clear error so the user re-authenticates.
 
 ### 4.3 Entra app registration (one app)
@@ -140,7 +140,6 @@ A prompt returns instructions plus a recommended tool sequence, for example "cal
 ### 5.3 Resources
 
 - `templates://{name}`: the raw documentation/plan templates.
-- `ado://fields/{project}/{type}`: the field schema of a work item type (helps the model propose valid updates).
 
 ### 5.4 Choosing the primitive: tool, resource or prompt
 
@@ -149,7 +148,7 @@ The three MCP server primitives differ in **who decides to use them**, not in wh
 | Primitive | Controlled by | Use it when | In this project |
 |---|---|---|---|
 | Tool | The **model** decides to call it during reasoning. | The model needs to fetch something on demand with parameters, or perform an action. Has side effects or depends on the conversation. | `get_work_item`, `search_code`, `propose_comment`, `apply_proposal` |
-| Resource | The **application** (client or user) decides to attach it as context. | Read-only, addressable data identified by a URI that is useful as background, without the model having to "decide" to fetch it. | `templates://{name}`, `ado://fields/{project}/{type}` |
+| Resource | The **application** (client or user) decides to attach it as context. | Read-only, addressable data identified by a URI that is useful as background, without the model having to "decide" to fetch it. | `templates://{name}` |
 | Prompt | The **user** picks it explicitly (e.g. a slash command in Claude Code). | A reusable, parameterized workflow the user starts on purpose. | `analyze_ticket`, `assess_impact`, `plan_implementation`, `write_tech_doc` |
 
 Rules of thumb:
@@ -157,19 +156,8 @@ Rules of thumb:
 - If it has side effects, it is a tool. Resources and prompts must never change state.
 - If the model must choose *when* and *with which arguments* to fetch it, it is a tool, even if it is read-only. A work item is a tool, not a resource, because the model discovers which IDs matter while reasoning.
 - If the user should consciously start it, it is a prompt. A prompt can recommend a tool sequence, but the model still decides the calls.
-- Client support differs: every client supports tools; support for resources and prompts is uneven. Anything the workflow cannot do without must be reachable as a tool.
-
-How Claude Code exposes each primitive (verified in step 1 over stdio and http):
-
-| Primitive | Where it appears in Claude Code | Notes |
-|---|---|---|
-| Tool | Not in the prompt input. Listed under `/mcp` → server → *View tools*; invoked by the model as `mcp__<server>__<tool>`. | The user cannot pick a tool directly, only ask for it. The permission prompt before the call is the evidence that it went through MCP. |
-| Resource | `@` mentions, showing both static resources and resource templates. | The user attaches the content to the context with `@`. The model can also read resources itself through Claude Code's built-in resource tools, including templates (it fills in the URI, e.g. `greeting://Karol`). This is a Claude Code feature, not an MCP guarantee; other clients may only let the user attach resources. |
-| Prompt | `/` slash commands. | The user starts it on purpose; arguments are filled in by the user. |
-
-The asymmetry follows from who controls each primitive: the user-controlled ones (resources, prompts) get an input shortcut, while the model-controlled one (tools) does not. The shortcut is about the user, not a limit on the model: in Claude Code the model can reach both tools and resources, but the rule above still holds because other clients may not expose resources to the model.
-
-The same exposure was observed over stdio and Streamable HTTP: how primitives appear depends on the client, not on the transport.
+- Client support differs: every client supports tools; support for resources and prompts is uneven. Anything the workflow cannot do without must be reachable as a tool. Resources in this project are optional conveniences; no workflow depends on one.
+- The primitive follows from side effects and control, not from the data it uses. A tool may take input the model built from a template resource, and a prompt may embed a resource; neither changes the tool or the prompt into a resource.
 
 Tool design checklist (in addition to the rules at the top of this section):
 
@@ -185,16 +173,7 @@ Tool design checklist (in addition to the rules at the top of this section):
 |---|---|---|---|
 | stdio | The client starts the server as a subprocess and talks over stdin/stdout. One client, one user, one process. | Local experiments (step 1) and single-user local tools. | None in MCP; the process inherits the user's local credentials (e.g. a PAT in env). |
 | Streamable HTTP | One HTTP endpoint (`/mcp`): the client POSTs JSON-RPC messages; the server answers with JSON or an SSE stream (for progress, logging, elicitation). Optional session ID header. | Remote, multi-user servers (this project, ADR-002). | OAuth 2.1 bearer tokens (section 4). |
-| HTTP+SSE (legacy) | Two endpoints (`/sse` + POST). Deprecated in the MCP spec since 2025-03-26. | Do not use; know it only to recognize it in older examples. | |
-
-Who runs the server process: over stdio the client starts the server itself as a subprocess, so it is running whenever the client needs it. Over Streamable HTTP the server must already be running; the client only connects to the URL, and if nothing listens there it fails with a connection error (`ECONNREFUSED`, observed in step 1) instead of starting it.
-
-Streamable HTTP details observed with raw curl in step 1 (FastMCP 4.1):
-
-- The client must send `Accept: application/json, text/event-stream`. An empty `Accept` or only one of the two types returns `406 Not Acceptable`. Note that curl sends `Accept: */*` by default, which the server accepts, so testing "without Accept" needs an explicit `-H "Accept:"`.
-- Responses come as an SSE stream: each JSON-RPC message is a line prefixed with `data:` (after an `event: message` line), not a plain JSON body.
-- `initialize` returns the session ID in the `Mcp-Session-Id` response header; every later request must send it back. A missing session ID returns `400`, an unknown one returns `404`.
-- A JSON-RPC notification (no `id`, e.g. `notifications/initialized`) returns `202 Accepted` with an empty body. A notification expects no response, so there is no JSON-RPC message to send; HTTP still needs a status, and `202` only says "received". Over stdio the server writes nothing back at all.
+| HTTP+SSE (legacy) | Two endpoints (`/sse` + POST). Deprecated in the MCP spec since 2025-03-26. | Do not use. | |
 
 Why this matters here: elicitation (section 7) requires the server to send a request to the client in the middle of a tool call. Over Streamable HTTP this travels on the SSE stream of that POST, so proxies or load balancers that buffer responses break approvals. With more than one replica, a session must reach the same instance or the session state must be shared (section 9).
 
@@ -348,9 +327,10 @@ This is the single roadmap for the project. Requirement IDs refer to [PRD.md](PR
 | 3 | Not started | Entra app registration + AzureProvider; log in from Claude Code/Inspector. | FR-23 | Claude Code signs in through Entra ID. A request without a token gets `401` with `WWW-Authenticate`; you can walk through the discovery chain (section 4.5) in the Inspector's network log; the proxy consent screen is shown for a new client; a token with a wrong audience is rejected. | OAuth 2.1 in MCP, protected resource metadata, DCR, why the proxy exists, confused deputy. |
 | 4 | Not started | Replace PAT with `EntraOBOToken`. | FR-24, FR-25, FR-26 | Same tool works as the signed-in user; PAT removed. Negative tests: an item the user cannot see returns a clear "no access" error; a project outside the allowlist is refused by the server; the incoming token is never sent to Azure DevOps (asserted in tests). Decoded tokens show the two audiences. | OBO, token audiences, consent, Conditional Access errors, threats in section 4.5. |
 | 5 | Not started | Remaining read tools + output shaping, untrusted-content marking and neutralization. | FR-2..FR-9, NFR-2 | Ticket context, links, PRs, code and wiki available with typed parameters and output schemas (section 5.4). Injection fixtures T1, T6 and hidden-text cases are marked and neutralized (section 10.1). | Tool design for LLMs, structured output, token budgets, how injection reaches the model. |
-| 6 | Not started | Prompts for analysis/impact/plan/docs, plus resources `templates://` and `ado://fields`. | FR-10..FR-14 | Analysis and impact assessment usable on real tickets; prompts start as slash commands in Claude Code; resources can be attached as context. | Prompt-driven workflows, evidence and confidence, prompts vs resources in practice. |
+| 6 | Not started | Prompts for analysis/impact/plan/docs, plus resource `templates://`. | FR-10..FR-14 | Analysis and impact assessment usable on real tickets; prompts start as slash commands in Claude Code; resources can be attached as context. | Prompt-driven workflows, evidence and confidence, prompts vs resources in practice. |
 | 7 | Not started | Proposal store + `propose_*` + `apply_proposal` with elicitation, payload sanitization, audit. | FR-15, FR-16, FR-18..FR-22, NFR-2, NFR-4 | Approved writes land; rejected/expired proposals never do. Tests for T2–T5 pass (section 10.1); a manual run against a poisoned ticket is recorded. | Human-in-the-loop design, state machines, audit, defense in depth against prompt injection. |
 | 8 | Not started | Tests, telemetry, container, deploy to Azure. | NFR-1, NFR-5..NFR-7 | Hosted instance in Azure Container Apps. | Operability and secure hosting. |
+| 9 | Not started | Turn this document into a production architecture document. | none | Learning-oriented content is removed or moved out: the "What you learn" column, "you can explain..." exit criteria and the "learning-oriented" framing of this section. The roadmap is replaced by the actual state and remaining backlog; status, version and references are current. | Separating design records from learning material. This step will also be removed. |
 | Later | Not started  | FR-17, sampling-based analysis, web approval page, multi-party approval. | | | |
 
 ## 14. Decided scope
@@ -370,7 +350,7 @@ Product decisions (clients, organization and project, hosting, writable fields, 
 - Azure DevOps remote MCP server GA (context for build vs. reuse): https://infoq.com/news/2026/08/azure-devops-remote-mcp-ga
 - Microsoft identity platform, On-Behalf-Of flow: https://learn.microsoft.com/entra/identity-platform/v2-oauth2-on-behalf-of-flow
 - Azure DevOps REST API reference: https://learn.microsoft.com/rest/api/azure/devops/
-- Claude Code 2.1.76 release notes (MCP elicitation): https://www.havoptic.com/r/claude-code-2.1.76
+- Claude Code changelog, version 2.1.76 (MCP elicitation, `Elicitation` / `ElicitationResult` hooks): https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
 - MCP specification, server primitives (tools, resources, prompts) and transports: https://modelcontextprotocol.io/specification
 - MCP security best practices (confused deputy, token passthrough, session hijacking): https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
 - RFC 9728, OAuth 2.0 Protected Resource Metadata: https://www.rfc-editor.org/rfc/rfc9728
