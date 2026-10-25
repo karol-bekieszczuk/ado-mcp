@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.7 |
+| Status | Draft v0.8 |
 | Owner | Karol |
-| Last updated | 2026-10-23 |
+| Last updated | 2026-10-25 |
 | Related | [PRD.md](PRD.md) |
 
 This document explains **what** the components are, **how** they interact and **why** each choice was made. Decisions are recorded as ADRs in section 12 so they can be revisited deliberately.
@@ -282,12 +282,12 @@ Tests (see roadmap steps 5 and 7): a fixture work item set containing T1–T6 pa
 
 ```
 ado-mcp/
-  pyproject.toml            # uv, fastmcp[azure], httpx, pydantic, pydantic-settings
+  pyproject.toml            # uv, fastmcp[azure], httpx2, pydantic, pydantic-settings
   src/ado_mcp/
-    server.py               # FastMCP app, auth provider, registration of tools/prompts
+    server.py               # server factory, lifespan (settings, shared HTTP client), auth provider, registration of tools/prompts
     config.py               # settings
     auth/obo.py             # OBO helpers and error mapping
-    ado/client.py           # httpx client, retries, throttling, pagination
+    ado/client.py           # httpx2 client, retries, throttling, pagination
     ado/models.py           # pydantic models for curated outputs
     ado/shaping.py          # HTML -> Markdown, truncation
     tools/read.py           # read tools
@@ -298,11 +298,11 @@ ado-mcp/
     prompts/                # *.md templates + loader
   tests/
     unit/                   # shaping, approval state machine, error mapping
-    integration/            # FastMCP in-memory Client + mocked ADO (respx)
+    integration/            # FastMCP in-memory Client + mocked ADO (httpx2.MockTransport)
     e2e/                    # optional, against a sandbox ADO project
 ```
 
-Testing approach: FastMCP's in-memory `Client` lets you call tools in tests without HTTP or auth; `respx` mocks Azure DevOps HTTP. The approval state machine deserves the most unit tests because it is the safety boundary.
+Testing approach: FastMCP's in-memory `Client` lets you call tools in tests without HTTP or auth; Azure DevOps HTTP is mocked with `httpx2.MockTransport`, injected through the server factory, so the real client configuration (base URL, auth, `api-version`) runs in tests and only the network is replaced. `respx` is not used because it patches `httpx` and does not intercept `httpx2`. The approval state machine deserves the most unit tests because it is the safety boundary.
 
 ## 12. Architecture decision records
 

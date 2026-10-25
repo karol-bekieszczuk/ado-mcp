@@ -62,7 +62,8 @@ npx @modelcontextprotocol/inspector
 | `CLIENT_SECRET` | Dev only; use a certificate or managed identity in Azure |
 | `BASE_URL` | Public base URL of the server (OAuth redirect) |
 | `ADO_ORG` | Azure DevOps organization (`myTicketOrg`) |
-| `ADO_PROJECT_ALLOWLIST` | Allowed projects (`myTicketProject`) |
+| `ADO_PROJECT` | Azure DevOps project (`myTicketProject`); replaced by `ADO_PROJECT_ALLOWLIST` in build step 4 |
+| `ADO_PAT` | Temporary: Personal Access Token (`Work Items (Read)` only) for local learning in build steps 2–3; removed in build step 4 |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Telemetry and audit log |
 
 Secrets never go into the repository. Use a git-ignored `.env` locally and Azure Key Vault in production.

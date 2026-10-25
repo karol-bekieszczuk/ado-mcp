@@ -9,6 +9,8 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=4.1,<5",
+    "httpx2>=2.13.1",
+    "pydantic-settings>=2.16.0",
 ]
 
 [project.scripts]
@@ -20,7 +22,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.13.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.17.1",
