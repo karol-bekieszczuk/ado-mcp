@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.4 |
+| Status | Draft v0.5 |
 | Owner | Karol |
-| Last updated | 2026-10-17 |
+| Last updated | 2026-10-25 |
 | Related | [ARCHITECTURE.md](ARCHITECTURE.md) |
 
 ## 1. Summary
@@ -66,7 +66,7 @@ All personas already have Azure DevOps access; the server never grants more.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-1 | Get a work item by ID with curated fields (title, type, state, description, acceptance criteria, area/iteration path, tags, assignee), HTML converted to plain text or Markdown. | Must |
+| FR-1 | Get a work item by ID with curated fields (title, type, state, description, acceptance criteria when the work item type has the field (see D10), area/iteration path, tags, assignee display name only, no e-mail), HTML converted to plain text or Markdown. | Must |
 | FR-2 | Get comments and revision history of a work item (summarized/limited). | Must |
 | FR-3 | List linked work items (parent, children, related, predecessor/successor) to a configurable depth. | Must |
 | FR-4 | List artifact links: PRs, commits, branches, builds linked to a work item. | Must |
@@ -169,6 +169,7 @@ Microsoft ships an Azure DevOps MCP server (local, and a hosted remote endpoint 
 | D7 | Admin consent | Personal learning tenant; Karol is tenant administrator and grants consent himself. |
 | D8 | MFA / Conditional Access | Keep Entra Security Defaults (free baseline MFA). No Conditional Access in v1 (needs Entra ID P1). MFA happens at sign-in and carries into the OBO token. |
 | D9 | Test identity | Use a dedicated work account in the tenant (`<user>@<tenant>.onmicrosoft.com`), not a personal Microsoft account, for Azure DevOps and sign-in tests. The `myTicketOrg` organization is connected to this tenant. |
+| D10 | Process template (2026-10-25) | Keep the Basic process. Its work item types (Epic, Issue, Task) have no `Microsoft.VSTS.Common.AcceptanceCriteria` field, so acceptance criteria are written in the description. FR-1 returns the field only when it exists; no parsing of criteria out of the description. |
 
 ## 15. Open questions
 

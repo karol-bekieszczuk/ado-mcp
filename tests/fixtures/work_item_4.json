@@ -1,0 +1,69 @@
+{
+    "id": 4,
+    "rev": 1,
+    "fields": {
+        "System.AreaPath": "myTicketProject",
+        "System.TeamProject": "myTicketProject",
+        "System.IterationPath": "myTicketProject",
+        "System.WorkItemType": "Epic",
+        "System.State": "To Do",
+        "System.Reason": "Added to backlog",
+        "System.CreatedDate": "2026-10-23T15:47:20.65Z",
+        "System.CreatedBy": {
+            "displayName": "Karol Osiacki",
+            "url": "https://spsprodweu6.vssps.visualstudio.com/Ac6ed0cc0-51d1-4242-8419-ecf71bcecf45/_apis/Identities/d947d521-ac03-6236-8ab1-d829735aabd5",
+            "_links": {
+                "avatar": {
+                    "href": "https://dev.azure.com/myTicketOrg/_apis/GraphProfile/MemberAvatars/aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1"
+                }
+            },
+            "id": "d947d521-ac03-6236-8ab1-d829735aabd5",
+            "uniqueName": "karolo@myTenant.onmicrosoft.com",
+            "imageUrl": "https://dev.azure.com/myTicketOrg/_apis/GraphProfile/MemberAvatars/aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1",
+            "descriptor": "aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1"
+        },
+        "System.ChangedDate": "2026-10-23T15:47:20.65Z",
+        "System.ChangedBy": {
+            "displayName": "Karol Osiacki",
+            "url": "https://spsprodweu6.vssps.visualstudio.com/Ac6ed0cc0-51d1-4242-8419-ecf71bcecf45/_apis/Identities/d947d521-ac03-6236-8ab1-d829735aabd5",
+            "_links": {
+                "avatar": {
+                    "href": "https://dev.azure.com/myTicketOrg/_apis/GraphProfile/MemberAvatars/aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1"
+                }
+            },
+            "id": "d947d521-ac03-6236-8ab1-d829735aabd5",
+            "uniqueName": "karolo@myTenant.onmicrosoft.com",
+            "imageUrl": "https://dev.azure.com/myTicketOrg/_apis/GraphProfile/MemberAvatars/aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1",
+            "descriptor": "aad.ZDk0N2Q1MjEtYWMwMy03MjM2LThhYjEtZDgyOTczNWFhYmQ1"
+        },
+        "System.CommentCount": 0,
+        "System.Title": "wybrakowany epic",
+        "Microsoft.VSTS.Common.StateChangeDate": "2026-10-23T15:47:20.65Z",
+        "Microsoft.VSTS.Common.Priority": 2
+    },
+    "multilineFieldsFormat": {},
+    "_links": {
+        "self": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItems/4"
+        },
+        "workItemUpdates": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItems/4/updates"
+        },
+        "workItemRevisions": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItems/4/revisions"
+        },
+        "workItemComments": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItems/4/comments"
+        },
+        "html": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_workitems/edit/4"
+        },
+        "workItemType": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItemTypes/Epic"
+        },
+        "fields": {
+            "href": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/fields"
+        }
+    },
+    "url": "https://dev.azure.com/myTicketOrg/20f9dc73-c744-4671-9741-ec0205cb4b91/_apis/wit/workItems/4"
+}
