@@ -46,10 +46,14 @@ def test_config_validation(monkeypatch):
     error = str(exc.value)
     assert "org" in error
     assert "project" in error
+    assert "pat" in error
     assert "String should have at least 1 character" in error
 
 
-def test_required_config_fields():
+def test_required_config_fields(monkeypatch):
+    for name in ("ADO_ORG", "ADO_PROJECT", "ADO_PAT"):
+        monkeypatch.delenv(name, raising=False)
+
     with pytest.raises(ValidationError, match="org"):
         config.Settings(_env_file=None, project="p", pat="test_pat")
 

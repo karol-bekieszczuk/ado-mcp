@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-import httpx2 as httpx
+import httpx2
 import pytest
 
 from ado_mcp import server
@@ -23,8 +23,8 @@ async def http_client():
     app = server.create_server().http_app(**server.HTTP_SECURITY)
     async with (
         app.router.lifespan_context(app),
-        httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
+        httpx2.AsyncClient(
+            transport=httpx2.ASGITransport(app=app),
             base_url="http://127.0.0.1:8000",
         ) as c,
     ):

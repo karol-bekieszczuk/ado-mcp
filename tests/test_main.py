@@ -21,7 +21,6 @@ def fake_server(monkeypatch):
 def test_main_defaults_to_stdio(monkeypatch, fake_server):
     monkeypatch.delenv("MCP_TRANSPORT", raising=False)
     server.main()
-    print(fake_server.run_calls)
     assert fake_server.run_calls == [{}]
 
 

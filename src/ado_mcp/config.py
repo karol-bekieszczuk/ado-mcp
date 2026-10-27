@@ -12,4 +12,4 @@ class Settings(BaseSettings):
     )
     org: Annotated[str, Field(min_length=1)]
     project: Annotated[str, Field(min_length=1)]
-    pat: SecretStr
+    pat: Annotated[SecretStr, Field(min_length=1)]

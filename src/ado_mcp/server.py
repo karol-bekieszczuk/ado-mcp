@@ -2,9 +2,14 @@ import os
 from importlib.metadata import version
 from typing import Annotated, Literal
 
+import httpx2
 from fastmcp import Context, FastMCP
 from fastmcp.prompts import Message
+from fastmcp.server.lifespan import lifespan
 from pydantic import Field, StringConstraints
+
+from ado_mcp.ado.client import build_http_client
+from ado_mcp.config import Settings
 
 HTTP_SECURITY = {"host_origin_protection": True}
 
@@ -70,8 +75,14 @@ def greeting_prompt(
     ]
 
 
-def create_server() -> FastMCP:
-    mcp = FastMCP("ado-mcp")
+def create_server(transport: httpx2.AsyncBaseTransport | None = None) -> FastMCP:
+    @lifespan
+    async def app_lifespan(server):
+        settings = Settings()
+        async with build_http_client(settings, transport) as http_client:
+            yield {"http_client": http_client}
+
+    mcp = FastMCP(name="ado-mcp", lifespan=app_lifespan)
     mcp.tool(greet)
     mcp.resource("server://info", mime_type="application/json")(server_metadata)
     mcp.resource("greeting://{name}")(greeting)
