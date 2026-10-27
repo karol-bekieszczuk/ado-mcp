@@ -2,16 +2,13 @@ import os
 from importlib.metadata import version
 from typing import Annotated, Literal
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 from fastmcp.prompts import Message
 from pydantic import Field, StringConstraints
-
-mcp = FastMCP("ado-mcp")
 
 HTTP_SECURITY = {"host_origin_protection": True}
 
 
-@mcp.tool
 def greet(
     name: Annotated[
         str,
@@ -26,29 +23,29 @@ def greet(
     return f"Hello, {name}! You have been greeted {times} times."
 
 
-@mcp.resource("server://info", mime_type="application/json")
-async def server_metadata() -> dict:
+async def server_metadata(ctx: Context) -> dict:
     """Returns server metadata and available MCP primitives as JSON."""
+    server = ctx.fastmcp
     return {
-        "name": mcp.name,
+        "name": server.name,
         "version": version("ado-mcp"),
         "fastmcp_version": version("fastmcp"),
         "primitives": {
-            "tools": [t.name for t in await mcp.list_tools()],
-            "resources": [r.name for r in await mcp.list_resources()],
-            "resource_templates": [r.name for r in await mcp.list_resource_templates()],
-            "prompts": [p.name for p in await mcp.list_prompts()],
+            "tools": [t.name for t in await server.list_tools()],
+            "resources": [r.name for r in await server.list_resources()],
+            "resource_templates": [
+                r.name for r in await server.list_resource_templates()
+            ],
+            "prompts": [p.name for p in await server.list_prompts()],
         },
     }
 
 
-@mcp.resource("greeting://{name}")
 def greeting(name: str) -> str:
     """Greeting resource. Returns a greeting message for the given name."""
     return f"# Hello {name}\n..."
 
 
-@mcp.prompt
 def greeting_prompt(
     names: Annotated[
         str,
@@ -73,12 +70,23 @@ def greeting_prompt(
     ]
 
 
+def create_server() -> FastMCP:
+    mcp = FastMCP("ado-mcp")
+    mcp.tool(greet)
+    mcp.resource("server://info", mime_type="application/json")(server_metadata)
+    mcp.resource("greeting://{name}")(greeting)
+    mcp.prompt(greeting_prompt)
+    return mcp
+
+
 def main() -> None:
     transport = os.getenv("MCP_TRANSPORT", "stdio")
     if transport not in ("stdio", "http"):
         raise SystemExit(
             f"Unknown MCP_TRANSPORT={transport!r}, expected 'stdio' or 'http'"
         )
+
+    mcp = create_server()
 
     if transport == "stdio":
         mcp.run()

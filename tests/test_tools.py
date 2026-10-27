@@ -4,12 +4,12 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
-from ado_mcp.server import mcp
+from ado_mcp.server import create_server
 
 
 @pytest.fixture
 async def client():
-    async with Client(mcp) as c:
+    async with Client(create_server()) as c:
         yield c
 
 

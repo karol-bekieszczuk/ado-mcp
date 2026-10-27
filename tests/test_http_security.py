@@ -20,7 +20,7 @@ ACCEPT = {"Accept": "application/json, text/event-stream"}
 
 @asynccontextmanager
 async def http_client():
-    app = server.mcp.http_app(**server.HTTP_SECURITY)
+    app = server.create_server().http_app(**server.HTTP_SECURITY)
     async with (
         app.router.lifespan_context(app),
         httpx.AsyncClient(

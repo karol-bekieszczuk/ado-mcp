@@ -5,12 +5,12 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import MCPError
 
-from ado_mcp.server import mcp
+from ado_mcp.server import create_server
 
 
 @pytest.fixture
 async def client():
-    async with Client(mcp) as c:
+    async with Client(create_server()) as c:
         yield c
 
 
@@ -25,6 +25,7 @@ async def test_static_resource_happy_path(client):
     assert data["name"] == "ado-mcp"
     assert data["version"] == version("ado-mcp")
     assert data["fastmcp_version"] == version("fastmcp")
+    assert "greet" in data["primitives"]["tools"]
     assert result[0].mime_type == "application/json"
 
 
