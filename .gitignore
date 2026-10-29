@@ -4,3 +4,4 @@ CLAUDE.md
 __pycache__/
 docs/notes/
 *.headers.txt
+.vscode/

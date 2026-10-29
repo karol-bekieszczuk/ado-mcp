@@ -22,11 +22,9 @@ async def test_lifespan_provides_http_client_and_closes_it():
         return httpx2.Response(200, json={"ok": True})
 
     async def probe(ctx: Context) -> dict:
-        http_client = ctx.lifespan_context["http_client"]
-        print(http_client)
-        clients.append(http_client)
-        response = await http_client.get("wit/workitems/1")
-        return response.json()
+        ado = ctx.lifespan_context["ado"]
+        clients.append(ado.client)
+        return await ado.get_work_item(1)
 
     mcp = create_server(transport=httpx2.MockTransport(handler))
     mcp.tool(probe)

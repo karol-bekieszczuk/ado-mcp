@@ -16,3 +16,14 @@ def build_http_client(
         follow_redirects=False,
         transport=transport,
     )
+
+
+class AdoClient:
+    def __init__(self, client: httpx2.AsyncClient):
+        self.client = client
+
+    async def get_work_item(self, work_item_id: int) -> dict:
+        response = await self.client.get(
+            f"wit/workitems/{work_item_id}", params={"$expand": "relations"}
+        )
+        return response.raise_for_status().json()
